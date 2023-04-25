@@ -1,110 +1,95 @@
 #include "main.h"
+
 void print_buffer(char buffer[], int *buff_ind);
+
 /**
  * _printf - Printf function
  * @format: format.
  * Return: Printed chars.
  */
 int _printf(const char *format, ...)
-
 {
+    int i, printed = 0, printed_chars = 0;
+    int flags, width, precision, size, buff_ind = 0;
+    va_list list;
+    char buffer[BUFF_SIZE];
 
-int i, printed = 0, printed_chars = 0;
+    if (format == NULL)
+        return (-1);
 
-int flags, width, precision, size, buff_ind = 0;
+    va_start(list, format);
 
-va_list list;
+    for (i = 0; format && format[i] != '\0'; i++)
+    {
+        if (format[i] != '%')
+        {
+            buffer[buff_ind++] = format[i];
+            if (buff_ind == BUFF_SIZE)
+                print_buffer(buffer, &buff_ind);
+            printed_chars++;
+        }
+        else
+        {
+            print_buffer(buffer, &buff_ind);
 
-char buffer[BUFF_SIZE];
+            flags = get_flags(format, &i);
+            width = get_width(format, &i, list);
+            precision = get_precision(format, &i, list);
+            size = get_size(format, &i);
 
-if (format == NULL)
+            if (format[i] == 'p')
+                printed = handle_pointer(list, buffer, buff_ind);
+            else
+                printed = handle_print(format, &i, list, buffer, flags, width, precision, size);
 
-return (-1);
+            if (printed == -1)
+                return (-1);
 
-va_start(list, format);
+            printed_chars += printed;
+        }
+    }
 
-for (i = 0; format && format[i] != '\0'; i++)
+    print_buffer(buffer, &buff_ind);
 
-{
+    va_end(list);
 
-if (format[i] != '%')
-
-{
-
-buffer[buff_ind++] = format[i];
-
-if (buff_ind == BUFF_SIZE)
-
-print_buffer(buffer, &buff_ind);
-
-/* write(1, &format[i], 1);*/
-
-printed_chars++;
-
+    return (printed_chars);
 }
 
-else
-
+/**
+ * handle_pointer - Handles the %p conversion specifier
+ * @list: Argument list
+ * @buffer: Array of chars
+ * @buff_ind: Index at which to add next char, represents the length.
+ * Return: Number of characters printed
+ */
+int handle_pointer(va_list list, char buffer[], int buff_ind)
 {
+    void *ptr = va_arg(list, void *);
+    char ptr_string[20];
 
-print_buffer(buffer, &buff_ind);
+    sprintf(ptr_string, "%p", ptr);
+    int ptr_len = strlen(ptr_string);
 
-flags = get_flags(format, &i);
+    if (buff_ind + ptr_len >= BUFF_SIZE)
+        print_buffer(buffer, &buff_ind);
 
-width = get_width(format, &i, list);
+    for (int i = 0; i < ptr_len; i++)
+        buffer[buff_ind++] = ptr_string[i];
 
-precision = get_precision(format, &i, list);
-
-size = get_size(format, &i);
-
-++i;
-
-printed = handle_print(format, &i, list, buffer,
-
-flags, width, precision, size);
-
-if (printed == -1)
-
-return (-1);
-
-printed_chars += printed;
-
+    return ptr_len;
 }
-
-}
-
-
-
-print_buffer(buffer, &buff_ind);
-
-
-
-va_end(list);
-
-
-
-return (printed_chars);
-
-}
-
-
 
 /**
  * print_buffer - Prints the contents of the buffer if it exist
  * @buffer: Array of chars
  * @buff_ind: Index at which to add next char, represents the length.
  */
-
 void print_buffer(char buffer[], int *buff_ind)
-
 {
+    if (*buff_ind > 0)
+        write(1, &buffer[0], *buff_ind);
 
-if (*buff_ind > 0)
-
-write(1, &buffer[0], *buff_ind);
-
-
-
-*buff_ind = 0;
-
+    *buff_ind = 0;
 }
+
